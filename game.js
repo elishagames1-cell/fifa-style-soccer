@@ -156,7 +156,7 @@ export class Game {
 
     runAI(dt, { home: this.home, away: this.away, ball: this.ball, controlled: this.controlled, actions: this.actions, tackleRange: TACKLE_RANGE });
 
-    this.updateBallPickup();
+    this.updateBallPickup(dt);
     const prevBallX = this.ball.x;
     this.ball.update(dt, FIELD.width, FIELD.height);
     this.separatePlayers();
@@ -170,6 +170,14 @@ export class Game {
   autoSwitch() {
     if (this.ball.carrier === this.controlled) return;
     if (this.switchCooldown > 0) return;
+
+    // אם השוער שלי תפס את הכדור, השליטה עוברת אליו מיד - כדי שתחליט בעצמך מתי למסור/לבעוט,
+    // במקום שה-AI יוציא אותו אוטומטית אחרי כמה שניות
+    if (this.ball.carrier && this.ball.carrier.side === 'home' && this.ball.carrier.role === 'GK') {
+      this.setControlled(this.ball.carrier);
+      return;
+    }
+
     let best = null;
     let bestDist = Infinity;
     for (const p of this.home.squad) {
@@ -297,7 +305,9 @@ export class Game {
     this.ball.kick(dirX * speed + targetPlayer.vx * 0.25, dirY * speed + targetPlayer.vy * 0.25, { lofted: long });
     this.ball.lastTouchSide = fromPlayer.side;
     fromPlayer.kickCooldown = 0.3;
-    this.ball.pickupBlockTimer = 0.15;
+    // רק הבועט/המוסר עצמו לא יכול לאסוף את הכדור מיד בחזרה - כל שחקן אחר (כולל שוער) יכול לחסום/ליירט תוך כדי טיסה
+    this.ball.lastKicker = fromPlayer;
+    this.ball.kickerGraceTimer = 0.15;
   }
 
   shootBall(fromPlayer, power) {
@@ -307,7 +317,8 @@ export class Game {
     this.ball.kick(fromPlayer.facingX * speed, fromPlayer.facingY * speed, { lofted: false });
     this.ball.lastTouchSide = fromPlayer.side;
     fromPlayer.kickCooldown = 0.35;
-    this.ball.pickupBlockTimer = 0.15;
+    this.ball.lastKicker = fromPlayer;
+    this.ball.kickerGraceTimer = 0.15;
   }
 
   attemptTackle(player) {
@@ -323,7 +334,8 @@ export class Game {
     if (success) {
       this.ball.carrier = player;
       this.ball.lastTouchSide = player.side;
-      this.ball.pickupBlockTimer = 0.05;
+      this.ball.lastKicker = carrier;
+      this.ball.kickerGraceTimer = 0.05;
       player.tackleCooldown = 0.5;
     } else {
       player.slowTimer = 0.5;
@@ -336,21 +348,20 @@ export class Game {
     this.tackleEffects = this.tackleEffects.filter((e) => e.t > 0);
   }
 
-  updateBallPickup() {
-    if (this.ball.pickupBlockTimer > 0) {
-      this.ball.pickupBlockTimer -= 1 / 60;
-      return;
-    }
+  updateBallPickup(dt) {
+    if (this.ball.kickerGraceTimer > 0) this.ball.kickerGraceTimer -= dt;
     if (this.ball.carrier) return;
 
     // כדור מהיר (בעיטה/מסירה חזקה) נחסם רק בהתנגשות פיזית צמודה עם שחקן שממש בדרכו;
     // כדור איטי/עומד נאסף בנוחות (רדיוס איסוף רגיל) - כך שחקן/שוער שהכדור עובר עליו תמיד עוצר אותו
     const speed = Math.hypot(this.ball.vx, this.ball.vy);
     const radius = speed > 260 ? 20 : PICKUP_RADIUS;
+    const excludeKicker = this.ball.kickerGraceTimer > 0 ? this.ball.lastKicker : null;
 
     let best = null;
     let bestDist = Infinity;
     for (const p of [...this.home.squad, ...this.away.squad]) {
+      if (p === excludeKicker) continue;
       const d = dist(p, this.ball);
       if (d < radius && d < bestDist) {
         bestDist = d;

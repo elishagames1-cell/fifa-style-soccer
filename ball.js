@@ -31,6 +31,8 @@ export class Ball {
     this.radius = 7;
     this.carrier = null;
     this.lastTouchSide = null; // 'home' | 'away'
+    this.lastKicker = null; // השחקן היחיד שחסום מלאסוף את הכדור בחזרה מיד אחרי שבעט/מסר
+    this.kickerGraceTimer = 0;
     this.loftT = 0;
     this.loftDuration = 0;
     this.loftHeight = 0;

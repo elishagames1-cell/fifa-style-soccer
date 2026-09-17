@@ -48,8 +48,10 @@ export class Camera {
     const maxX = FIELD.width + FIELD.margin - halfW;
     const minY = -FIELD.margin + halfH;
     const maxY = FIELD.height + FIELD.margin - halfH;
-    if (minX < maxX) this.x = Math.max(minX, Math.min(maxX, this.x));
-    if (minY < maxY) this.y = Math.max(minY, Math.min(maxY, this.y));
+    // כשהתצוגה רחבה יותר מהמגרש+שוליים (minX>maxX), אין לאן "לתחום" את המצלמה -
+    // ממרכזים במקום להשאיר אותה חופשית לזחול ולחשוף שוליים/קהל בפרופורציה מוגזמת
+    this.x = minX <= maxX ? Math.max(minX, Math.min(maxX, this.x)) : FIELD.width / 2;
+    this.y = minY <= maxY ? Math.max(minY, Math.min(maxY, this.y)) : FIELD.height / 2;
   }
 
   worldToScreen(wx, wy) {
