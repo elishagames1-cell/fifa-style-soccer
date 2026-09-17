@@ -73,9 +73,21 @@
   .home-btn.primary:hover { background: #43a047; }
 
   /* מסך טבלת מובילים */
-  #leaderboardScreen { flex-direction: column; color: #eee; position: relative; }
-  .placeholder-box { text-align: center; color: #999; }
-  .placeholder-box h2 { color: #eee; }
+  #leaderboardScreen { flex-direction: column; color: #eee; position: relative; align-items: stretch; }
+  .leaderboard-body {
+    flex: 1; margin-top: 52px; padding: 20px; overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .leaderboard-body h2 { color: #eee; margin: 0 0 18px; }
+  .leaderboard-list { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 8px; }
+  .leaderboard-empty { color: #999; text-align: center; }
+  .leaderboard-row {
+    display: flex; align-items: center; gap: 12px;
+    background: #1b1b1b; border: 1px solid #333; border-radius: 8px; padding: 10px 14px;
+  }
+  .lb-rank { color: #4caf50; font-weight: bold; width: 32px; }
+  .lb-name { flex: 1; color: #eee; }
+  .lb-points { color: #ccc; font-size: 13px; }
 
   /* מסך הסבר */
   #helpScreen { flex-direction: column; color: #eee; position: relative; align-items: stretch; }
@@ -114,6 +126,8 @@
     width: 50px; height: 60px; display: flex; align-items: center; justify-content: center;
     font-size: 28px; color: #4caf50; border: 2px dashed #4caf50; border-radius: 6px; margin-bottom: 6px;
   }
+  .duration-card { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px 10px; }
+  .duration-icon { font-size: 32px; margin-bottom: 8px; }
 
   #gameScreen { background: #000; position: relative; }
   .game-controls-bar {
@@ -236,9 +250,9 @@
     </div>
     <button id="leaderboardLogoutBtn">Logout</button>
   </div>
-  <div class="placeholder-box">
+  <div class="leaderboard-body">
     <h2>Leaderboard</h2>
-    <p>טבלת הניקוד תיבנה בקרוב...</p>
+    <div id="leaderboardList" class="leaderboard-list"></div>
   </div>
 </div>
 

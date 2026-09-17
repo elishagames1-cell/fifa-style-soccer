@@ -9,8 +9,9 @@ export async function initTeamSelect({ onTeamsChosen }) {
   const teams = await loadTeams();
   const players = await loadPlayers();
 
-  let phase = 'mine'; // 'mine' | 'opponent'
+  let phase = 'mine'; // 'mine' | 'opponent' | 'duration'
   let myTeam = null;
+  let opponentTeam = null;
 
   function teamCard(team, opts = {}) {
     const card = document.createElement('div');
@@ -64,8 +65,8 @@ export async function initTeamSelect({ onTeamsChosen }) {
     randomCard.innerHTML = '<div class="random-icon">?</div><div class="team-card-name">Random</div>';
     randomCard.addEventListener('click', () => {
       const candidates = teams.filter((t) => t.name !== myTeam.name);
-      const opponent = candidates[Math.floor(Math.random() * candidates.length)];
-      onTeamsChosen(myTeam, opponent);
+      opponentTeam = candidates[Math.floor(Math.random() * candidates.length)];
+      renderDurationPhase();
     });
     gridEl.appendChild(randomCard);
 
@@ -74,9 +75,26 @@ export async function initTeamSelect({ onTeamsChosen }) {
       gridEl.appendChild(
         teamCard(team, {
           disabled: isMine,
-          onClick: () => onTeamsChosen(myTeam, team),
+          onClick: () => {
+            opponentTeam = team;
+            renderDurationPhase();
+          },
         })
       );
+    }
+  }
+
+  function renderDurationPhase() {
+    phase = 'duration';
+    titleEl.textContent = `${myTeam.name} vs ${opponentTeam.name} — Match Length`;
+    gridEl.innerHTML = '';
+
+    for (const minutes of [2, 5, 10]) {
+      const card = document.createElement('div');
+      card.className = 'team-card duration-card';
+      card.innerHTML = `<div class="duration-icon">⏱</div><div class="team-card-name">${minutes} Minutes</div>`;
+      card.addEventListener('click', () => onTeamsChosen(myTeam, opponentTeam, minutes));
+      gridEl.appendChild(card);
     }
   }
 
@@ -85,6 +103,7 @@ export async function initTeamSelect({ onTeamsChosen }) {
   return {
     reset() {
       myTeam = null;
+      opponentTeam = null;
       renderMinePhase();
     },
   };

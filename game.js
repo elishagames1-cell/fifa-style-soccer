@@ -7,21 +7,22 @@ import { FIELD, formationWorldPos } from './field.js';
 import { loadPlayers, buildSquad } from './data.js';
 import { touchState } from './touchControls.js';
 
-const HALF_LENGTH_SECONDS = 4 * 60;
 const PICKUP_RADIUS = 22;
 const TACKLE_RANGE = 28;
+const INGAME_HALF_MINUTES = 45; // כל מחצית "אמיתית" במשחק היא 45 דקות משחק, בלי קשר לכמה זמן אמיתי היא לוקחת
 
 function dist(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 export class Game {
-  constructor(canvas, { onMatchEnd } = {}) {
+  constructor(canvas, { onMatchEnd, onFullTime } = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.width = canvas.width;
     this.height = canvas.height;
     this.onMatchEnd = onMatchEnd || (() => {});
+    this.onFullTime = onFullTime || (() => {});
 
     this.camera = new Camera(this.width, this.height);
     this.ball = new Ball(FIELD.width / 2, FIELD.height / 2);
@@ -32,12 +33,13 @@ export class Game {
     this.shootPower = 0;
     this.switchCooldown = 0;
 
-    this.state = 'playing'; // playing | message | fulltime
+    this.state = 'playing'; // playing | message
     this.messageText = '';
     this.messageTimer = 0;
     this.messageThen = null;
     this.half = 1;
     this.clockSeconds = 0;
+    this.halfLengthSeconds = 5 * 60; // יעודכן ב-init() לפי אורך המשחק שנבחר
 
     this.crowdDots = generateCrowdDots();
     this.tackleEffects = [];
@@ -49,7 +51,9 @@ export class Game {
     };
   }
 
-  async init(myTeam, opponentTeam) {
+  async init(myTeam, opponentTeam, durationMinutes = 10) {
+    this.halfLengthSeconds = (durationMinutes * 60) / 2;
+
     const allPlayers = await loadPlayers();
     const mySquadData = buildSquad(myTeam.name, allPlayers);
     const oppSquadData = buildSquad(opponentTeam.name, allPlayers);
@@ -127,14 +131,6 @@ export class Game {
         this.messageThen = null;
         if (then) then();
       }
-      return;
-    }
-
-    if (this.state === 'fulltime') {
-      if (this.keys['KeyR'] && !this.prev.restart) {
-        this.onMatchEnd();
-      }
-      this.prev.restart = !!this.keys['KeyR'];
       return;
     }
 
@@ -392,7 +388,7 @@ export class Game {
 
   updateClock(dt) {
     this.clockSeconds += dt;
-    if (this.clockSeconds >= HALF_LENGTH_SECONDS) {
+    if (this.clockSeconds >= this.halfLengthSeconds) {
       if (this.half === 1) {
         this.half = 2;
         this.clockSeconds = 0;
@@ -401,10 +397,21 @@ export class Game {
         for (const p of [...this.home.squad, ...this.away.squad]) p.attackDir *= -1;
         this.showMessage('Half Time', 2.5, () => this.resetKickoff());
       } else {
-        this.clockSeconds = HALF_LENGTH_SECONDS;
-        this.state = 'fulltime';
+        this.clockSeconds = this.halfLengthSeconds;
+        const homeScore = this.home.score;
+        const awayScore = this.away.score;
+        this.showMessage(`Full Time  ${homeScore} - ${awayScore}`, 3, () => {
+          this.onFullTime({ homeScore, awayScore });
+        });
       }
     }
+  }
+
+  // ממיר את זמן המשחק ה"אמיתי" (תלוי אורך המשחק שנבחר) לזמן משחק מוצג של 45/90 דקות
+  displayClockSeconds() {
+    const fraction = Math.min(1, this.clockSeconds / this.halfLengthSeconds);
+    const base = this.half === 1 ? 0 : INGAME_HALF_MINUTES * 60;
+    return base + fraction * INGAME_HALF_MINUTES * 60;
   }
 
   draw() {
@@ -425,7 +432,7 @@ export class Game {
     drawHUD(ctx, this.width, this.height, {
       home: this.home,
       away: this.away,
-      clockSeconds: this.clockSeconds,
+      clockSeconds: this.displayClockSeconds(),
       half: this.half,
       ball: this.ball,
       controlled: this.controlled,
@@ -435,8 +442,6 @@ export class Game {
 
     if (this.state === 'message') {
       drawMatchMessage(ctx, this.width, this.height, this.messageText);
-    } else if (this.state === 'fulltime') {
-      drawMatchMessage(ctx, this.width, this.height, `Full Time  ${this.home.score} - ${this.away.score}   (Press R for new match)`);
     }
   }
 

@@ -3,6 +3,7 @@ import { initAuth, getSession, clearSession } from './auth.js';
 import { initTeamSelect } from './teamSelect.js';
 import { Game } from './game.js';
 import { initTouchControls } from './touchControls.js';
+import { recordResult, getLeaderboard } from './leaderboard.js';
 
 const authScreen = document.getElementById('authScreen');
 const homeScreen = document.getElementById('homeScreen');
@@ -83,8 +84,53 @@ document.getElementById('startPlayingBtn').addEventListener('click', async () =>
   await ensureTeamSelect();
 });
 
-document.getElementById('leaderboardBtn').addEventListener('click', () => showScreen(leaderboardScreen));
+document.getElementById('leaderboardBtn').addEventListener('click', () => {
+  renderLeaderboard();
+  showScreen(leaderboardScreen);
+});
 document.getElementById('helpBtn').addEventListener('click', () => showScreen(helpScreen));
+
+function renderLeaderboard() {
+  const list = document.getElementById('leaderboardList');
+  list.innerHTML = '';
+  const entries = getLeaderboard();
+
+  if (entries.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'leaderboard-empty';
+    empty.textContent = 'No results yet — win a match to get on the board!';
+    list.appendChild(empty);
+    return;
+  }
+
+  entries.forEach((entry, i) => {
+    const row = document.createElement('div');
+    row.className = 'leaderboard-row';
+
+    const rank = document.createElement('span');
+    rank.className = 'lb-rank';
+    rank.textContent = `#${i + 1}`;
+
+    const name = document.createElement('span');
+    name.className = 'lb-name';
+    name.textContent = entry.username;
+
+    const points = document.createElement('span');
+    points.className = 'lb-points';
+    points.textContent = `${entry.points} pts`;
+
+    row.append(rank, name, points);
+    list.appendChild(row);
+  });
+}
+
+function handleFullTime({ homeScore, awayScore }) {
+  const won = homeScore > awayScore;
+  recordResult(currentUsername, { won, goalsScored: homeScore });
+  currentGame = null;
+  renderLeaderboard();
+  showScreen(leaderboardScreen);
+}
 
 function leaveMatch(destination) {
   currentGame = null;
@@ -98,7 +144,7 @@ document.getElementById('gameHomeBtn').addEventListener('click', () => leaveMatc
 async function ensureTeamSelect() {
   if (!teamSelectApi) {
     teamSelectApi = await initTeamSelect({
-      onTeamsChosen: (myTeam, opponentTeam) => startMatch(myTeam, opponentTeam),
+      onTeamsChosen: (myTeam, opponentTeam, durationMinutes) => startMatch(myTeam, opponentTeam, durationMinutes),
     });
   } else {
     teamSelectApi.reset();
@@ -112,14 +158,15 @@ if (existingSession) {
   goHome(existingSession);
 }
 
-async function startMatch(myTeam, opponentTeam) {
+async function startMatch(myTeam, opponentTeam, durationMinutes) {
   showScreen(gameScreen);
   const canvas = document.getElementById('gameCanvas');
 
   const game = new Game(canvas, {
     onMatchEnd: () => leaveMatch(teamSelectScreen),
+    onFullTime: handleFullTime,
   });
-  await game.init(myTeam, opponentTeam);
+  await game.init(myTeam, opponentTeam, durationMinutes);
   currentGame = game;
 
   const keys = {};
