@@ -8,6 +8,7 @@ function formatClock(seconds) {
 
 export function drawHUD(ctx, vw, vh, state) {
   const { home, away, clockSeconds, half, ball, controlled, shootPower, camera } = state;
+  ctx.direction = 'ltr';
 
   // סרגל עליון: קבוצות, תוצאה, שעון
   const barW = 320;
@@ -32,7 +33,7 @@ export function drawHUD(ctx, vw, vh, state) {
 
   ctx.font = '12px Arial';
   ctx.fillStyle = '#ccc';
-  ctx.fillText(`${half === 1 ? '1st Half' : '2nd Half'}  ${formatClock(clockSeconds)}`, barX + barW / 2, barY + 34);
+  ctx.fillText(`${half === 1 ? 'מחצית 1' : 'מחצית 2'}  ${formatClock(clockSeconds)}`, barX + barW / 2, barY + 34);
 
   colorChip(ctx, barX + 14, barY + 16, home.team);
   colorChip(ctx, barX + barW - 14, barY + 16, away.team);
@@ -87,7 +88,7 @@ export function drawHUD(ctx, vw, vh, state) {
   ctx.textAlign = 'left';
   ctx.font = '11px Arial';
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  const controls = 'Move: WASD/Arrows   Sprint: Shift   Pass: J (hold=long)   Shoot: K (hold to charge)   Tackle: E   Switch: Tab';
+  const controls = 'תנועה: WASD/חצים   ספרינט: Shift   מסירה: J (החזקה=ארוכה)   בעיטה: K (החזק לכוח)   חטיפה: E   החלפה: Tab';
   ctx.fillStyle = 'rgba(0,0,0,0.5)';
   roundRect(ctx, 8, vh - 26, ctx.measureText(controls).width + 16, 20, 5);
   ctx.fill();
@@ -118,6 +119,7 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 export function drawMatchMessage(ctx, vw, vh, text) {
+  ctx.direction = 'ltr';
   ctx.fillStyle = 'rgba(0,0,0,0.6)';
   ctx.fillRect(0, vh / 2 - 40, vw, 80);
   ctx.fillStyle = '#fff';

@@ -9,9 +9,10 @@ export async function initTeamSelect({ onTeamsChosen }) {
   const teams = await loadTeams();
   const players = await loadPlayers();
 
-  let phase = 'mine'; // 'mine' | 'opponent' | 'duration'
+  let phase = 'mine'; // 'mine' | 'opponent' | 'duration' | 'difficulty'
   let myTeam = null;
   let opponentTeam = null;
+  let durationMinutes = null;
 
   function teamCard(team, opts = {}) {
     const card = document.createElement('div');
@@ -30,7 +31,7 @@ export async function initTeamSelect({ onTeamsChosen }) {
     const squad = buildSquad(team.name, players);
     const ratingEl = document.createElement('div');
     ratingEl.className = 'team-card-rating';
-    ratingEl.textContent = `Rating: ${teamRating(squad)}`;
+    ratingEl.textContent = `דירוג: ${teamRating(squad)}`;
 
     card.append(canvas, nameEl, ratingEl);
     if (!opts.disabled) {
@@ -41,7 +42,7 @@ export async function initTeamSelect({ onTeamsChosen }) {
 
   function renderMinePhase() {
     phase = 'mine';
-    titleEl.textContent = 'Choose Your Team';
+    titleEl.textContent = 'בחר את הקבוצה שלך';
     gridEl.innerHTML = '';
     for (const team of teams) {
       gridEl.appendChild(
@@ -57,12 +58,12 @@ export async function initTeamSelect({ onTeamsChosen }) {
 
   function renderOpponentPhase() {
     phase = 'opponent';
-    titleEl.textContent = `Your Team: ${myTeam.name} — Choose Opponent`;
+    titleEl.textContent = `הקבוצה שלך: ${myTeam.name} — בחר יריבה`;
     gridEl.innerHTML = '';
 
     const randomCard = document.createElement('div');
     randomCard.className = 'team-card random-card';
-    randomCard.innerHTML = '<div class="random-icon">?</div><div class="team-card-name">Random</div>';
+    randomCard.innerHTML = '<div class="random-icon">?</div><div class="team-card-name">אקראי</div>';
     randomCard.addEventListener('click', () => {
       const candidates = teams.filter((t) => t.name !== myTeam.name);
       opponentTeam = candidates[Math.floor(Math.random() * candidates.length)];
@@ -86,14 +87,36 @@ export async function initTeamSelect({ onTeamsChosen }) {
 
   function renderDurationPhase() {
     phase = 'duration';
-    titleEl.textContent = `${myTeam.name} vs ${opponentTeam.name} — Match Length`;
+    titleEl.textContent = `${myTeam.name} נגד ${opponentTeam.name} — משך המשחק`;
     gridEl.innerHTML = '';
 
     for (const minutes of [2, 5, 10]) {
       const card = document.createElement('div');
       card.className = 'team-card duration-card';
-      card.innerHTML = `<div class="duration-icon">⏱</div><div class="team-card-name">${minutes} Minutes</div>`;
-      card.addEventListener('click', () => onTeamsChosen(myTeam, opponentTeam, minutes));
+      card.innerHTML = `<div class="duration-icon">⏱</div><div class="team-card-name">${minutes} דקות</div>`;
+      card.addEventListener('click', () => {
+        durationMinutes = minutes;
+        renderDifficultyPhase();
+      });
+      gridEl.appendChild(card);
+    }
+  }
+
+  function renderDifficultyPhase() {
+    phase = 'difficulty';
+    titleEl.textContent = `${myTeam.name} נגד ${opponentTeam.name} — רמת קושי`;
+    gridEl.innerHTML = '';
+
+    const levels = [
+      { key: 'easy', label: 'קל', icon: '🙂' },
+      { key: 'medium', label: 'בינוני', icon: '😐' },
+      { key: 'hard', label: 'קשה', icon: '😈' },
+    ];
+    for (const level of levels) {
+      const card = document.createElement('div');
+      card.className = 'team-card duration-card';
+      card.innerHTML = `<div class="duration-icon">${level.icon}</div><div class="team-card-name">${level.label}</div>`;
+      card.addEventListener('click', () => onTeamsChosen(myTeam, opponentTeam, durationMinutes, level.key));
       gridEl.appendChild(card);
     }
   }
@@ -104,6 +127,7 @@ export async function initTeamSelect({ onTeamsChosen }) {
     reset() {
       myTeam = null;
       opponentTeam = null;
+      durationMinutes = null;
       renderMinePhase();
     },
   };

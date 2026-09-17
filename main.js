@@ -42,7 +42,7 @@ function initFullscreenButton() {
   ['fullscreenchange', 'webkitfullscreenchange'].forEach((evt) => {
     document.addEventListener(evt, () => {
       btn.textContent = isFullscreen() ? '⤢' : '⛶';
-      btn.title = isFullscreen() ? 'Exit Fullscreen' : 'Fullscreen';
+      btn.title = isFullscreen() ? 'צא ממסך מלא' : 'מסך מלא';
     });
   });
 }
@@ -68,6 +68,7 @@ function goHome(username) {
 
 function logout() {
   clearSession();
+  authApi.showChoice();
   showScreen(authScreen);
 }
 
@@ -98,7 +99,7 @@ function renderLeaderboard() {
   if (entries.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'leaderboard-empty';
-    empty.textContent = 'No results yet — win a match to get on the board!';
+    empty.textContent = 'עדיין אין תוצאות — נצח משחק כדי להופיע כאן!';
     list.appendChild(empty);
     return;
   }
@@ -117,7 +118,7 @@ function renderLeaderboard() {
 
     const points = document.createElement('span');
     points.className = 'lb-points';
-    points.textContent = `${entry.points} pts`;
+    points.textContent = `${entry.points} נק'`;
 
     row.append(rank, name, points);
     list.appendChild(row);
@@ -144,21 +145,21 @@ document.getElementById('gameHomeBtn').addEventListener('click', () => leaveMatc
 async function ensureTeamSelect() {
   if (!teamSelectApi) {
     teamSelectApi = await initTeamSelect({
-      onTeamsChosen: (myTeam, opponentTeam, durationMinutes) => startMatch(myTeam, opponentTeam, durationMinutes),
+      onTeamsChosen: (myTeam, opponentTeam, durationMinutes, difficulty) => startMatch(myTeam, opponentTeam, durationMinutes, difficulty),
     });
   } else {
     teamSelectApi.reset();
   }
 }
 
-initAuth({ onLoginSuccess: goHome });
+const authApi = initAuth({ onLoginSuccess: goHome });
 
 const existingSession = getSession();
 if (existingSession) {
   goHome(existingSession);
 }
 
-async function startMatch(myTeam, opponentTeam, durationMinutes) {
+async function startMatch(myTeam, opponentTeam, durationMinutes, difficulty) {
   showScreen(gameScreen);
   const canvas = document.getElementById('gameCanvas');
 
@@ -166,7 +167,7 @@ async function startMatch(myTeam, opponentTeam, durationMinutes) {
     onMatchEnd: () => leaveMatch(teamSelectScreen),
     onFullTime: handleFullTime,
   });
-  await game.init(myTeam, opponentTeam, durationMinutes);
+  await game.init(myTeam, opponentTeam, durationMinutes, difficulty);
   currentGame = game;
 
   const keys = {};

@@ -11,7 +11,6 @@
 
   /* מסך התחברות/הרשמה */
   .auth-card {
-    direction: ltr;
     background: #1b1b1b;
     border: 1px solid #333;
     border-radius: 10px;
@@ -22,11 +21,14 @@
   }
   .auth-card h1 { margin: 0 0 4px; font-size: 22px; color: #4caf50; }
   .auth-card h2 { margin: 0 0 20px; font-size: 15px; color: #aaa; font-weight: normal; }
-  .auth-card label { display: block; text-align: left; font-size: 13px; color: #ccc; margin-bottom: 14px; }
+  .auth-choice { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+  .auth-choice .home-btn { width: 100%; box-sizing: border-box; padding: 12px; }
+  .auth-card label { display: block; text-align: right; font-size: 13px; color: #ccc; margin-bottom: 14px; }
   .auth-card input {
     display: block; width: 100%; box-sizing: border-box; margin-top: 4px;
     padding: 8px 10px; border-radius: 6px; border: 1px solid #444;
     background: #222; color: #fff; font-size: 14px;
+    direction: ltr; text-align: left;
   }
   .auth-card input:focus { outline: none; border-color: #4caf50; }
   .auth-card .error { color: #ff6b6b; font-size: 12px; min-height: 16px; margin: 0 0 12px; }
@@ -143,7 +145,6 @@
   .game-controls-bar button:hover { background: rgba(0,0,0,0.75); }
   #fullscreenBtn { width: 34px; padding: 0; font-size: 18px; font-weight: normal; line-height: 1; }
   #gameCanvas { background: #2e7d32; display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; }
-  #gameCanvas { background: #2e7d32; display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; }
 
   /* מסך "סובב את המכשיר" - מוצג רק בטלפון במצב לאורך */
   .rotate-overlay {
@@ -198,19 +199,23 @@
 <div id="authScreen" class="screen">
   <div class="auth-card">
     <h1>כדורגל</h1>
-    <h2 id="authTitle">Login</h2>
-    <form id="authForm" novalidate>
-      <label>Username
+    <div id="authChoice" class="auth-choice">
+      <button type="button" id="showLoginBtn" class="home-btn primary">התחבר</button>
+      <button type="button" id="showSignupBtn" class="home-btn">הירשם</button>
+    </div>
+    <form id="authForm" class="hidden" novalidate>
+      <h2 id="authTitle">התחברות</h2>
+      <label>שם משתמש
         <input id="usernameInput" type="text" autocomplete="username" maxlength="16" />
       </label>
-      <label>Password
+      <label>סיסמה
         <input id="passwordInput" type="password" autocomplete="current-password" maxlength="16" />
       </label>
       <p id="authError" class="error" role="alert"></p>
-      <button type="submit" id="authSubmit">Login</button>
+      <button type="submit" id="authSubmit">התחבר</button>
     </form>
-    <p class="switch-line">
-      <span id="switchText">Don't have an account?</span><button type="button" id="switchModeBtn">Sign Up</button>
+    <p id="switchLine" class="switch-line hidden">
+      <span id="switchText">אין לך חשבון?</span><button type="button" id="switchModeBtn">הירשם</button>
     </p>
   </div>
 </div>
@@ -218,26 +223,26 @@
 <div id="homeScreen" class="screen hidden">
   <div class="topbar">
     <span id="homeUsernameLabel" class="username-label"></span>
-    <button id="homeLogoutBtn">Logout</button>
+    <button id="homeLogoutBtn">התנתקות</button>
   </div>
   <div class="home-body">
     <h1>כדורגל</h1>
-    <button id="startPlayingBtn" class="home-btn primary">Start Playing</button>
-    <button id="leaderboardBtn" class="home-btn">Leaderboard</button>
-    <button id="helpBtn" class="home-btn">How to Play</button>
+    <button id="startPlayingBtn" class="home-btn primary">התחל לשחק</button>
+    <button id="leaderboardBtn" class="home-btn">טבלת המובילים</button>
+    <button id="helpBtn" class="home-btn">איך משחקים</button>
   </div>
 </div>
 
 <div id="teamSelectScreen" class="screen hidden">
   <div class="topbar">
     <div class="topbar-left">
-      <button id="teamSelectBackBtn">Back</button>
+      <button id="teamSelectBackBtn">חזרה</button>
       <span id="teamSelectUsernameLabel" class="username-label"></span>
     </div>
-    <button id="teamSelectLogoutBtn">Logout</button>
+    <button id="teamSelectLogoutBtn">התנתקות</button>
   </div>
   <div class="team-select-body">
-    <h2 id="teamSelectTitle">Choose Your Team</h2>
+    <h2 id="teamSelectTitle">בחר את הקבוצה שלך</h2>
     <div id="teamGrid" class="team-grid"></div>
   </div>
 </div>
@@ -245,13 +250,13 @@
 <div id="leaderboardScreen" class="screen hidden">
   <div class="topbar">
     <div class="topbar-left">
-      <button id="leaderboardBackBtn">Back</button>
+      <button id="leaderboardBackBtn">חזרה</button>
       <span id="leaderboardUsernameLabel" class="username-label"></span>
     </div>
-    <button id="leaderboardLogoutBtn">Logout</button>
+    <button id="leaderboardLogoutBtn">התנתקות</button>
   </div>
   <div class="leaderboard-body">
-    <h2>Leaderboard</h2>
+    <h2>טבלת המובילים</h2>
     <div id="leaderboardList" class="leaderboard-list"></div>
   </div>
 </div>
@@ -259,10 +264,10 @@
 <div id="helpScreen" class="screen hidden">
   <div class="topbar">
     <div class="topbar-left">
-      <button id="helpBackBtn">Back</button>
+      <button id="helpBackBtn">חזרה</button>
       <span id="helpUsernameLabel" class="username-label"></span>
     </div>
-    <button id="helpLogoutBtn">Logout</button>
+    <button id="helpLogoutBtn">התנתקות</button>
   </div>
   <div class="help-body">
     <h2>איך משחקים</h2>
@@ -307,9 +312,9 @@
 <div id="gameScreen" class="screen hidden">
   <canvas id="gameCanvas" width="960" height="600"></canvas>
   <div class="game-controls-bar">
-    <button id="gameBackBtn" type="button">BACK</button>
-    <button id="gameHomeBtn" type="button">HOME</button>
-    <button id="fullscreenBtn" type="button" title="Fullscreen">⛶</button>
+    <button id="gameBackBtn" type="button">חזרה</button>
+    <button id="gameHomeBtn" type="button">בית</button>
+    <button id="fullscreenBtn" type="button" title="מסך מלא">⛶</button>
   </div>
   <div class="rotate-overlay">
     <div class="rotate-icon">🔄</div>

@@ -15,6 +15,23 @@ function dist(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+const DIFFICULTY_MULTIPLIERS = { easy: 0.8, medium: 1.0, hard: 1.25 };
+
+// מעצים/מחליש את סטטיסטיקות היריב לפי רמת הקושי הנבחרת, בלי לגעת בקבוצה של המשתמש
+function applyDifficulty(squadData, difficulty) {
+  const mult = DIFFICULTY_MULTIPLIERS[difficulty] ?? 1.0;
+  const scale = (v) => Math.max(1, Math.min(99, Math.round(v * mult)));
+  return squadData.map((p) => ({
+    ...p,
+    pace: scale(p.pace),
+    shooting: scale(p.shooting),
+    passing: scale(p.passing),
+    dribbling: scale(p.dribbling),
+    defending: scale(p.defending),
+    physical: scale(p.physical),
+  }));
+}
+
 export class Game {
   constructor(canvas, { onMatchEnd, onFullTime } = {}) {
     this.canvas = canvas;
@@ -51,12 +68,12 @@ export class Game {
     };
   }
 
-  async init(myTeam, opponentTeam, durationMinutes = 10) {
+  async init(myTeam, opponentTeam, durationMinutes = 10, difficulty = 'medium') {
     this.halfLengthSeconds = (durationMinutes * 60) / 2;
 
     const allPlayers = await loadPlayers();
     const mySquadData = buildSquad(myTeam.name, allPlayers);
-    const oppSquadData = buildSquad(opponentTeam.name, allPlayers);
+    const oppSquadData = applyDifficulty(buildSquad(opponentTeam.name, allPlayers), difficulty);
 
     this.home = { team: myTeam, squad: this.spawnSquad(mySquadData, myTeam, 'home', 1), attackDir: 1, side: 'home', score: 0 };
     this.away = { team: opponentTeam, squad: this.spawnSquad(oppSquadData, opponentTeam, 'away', -1), attackDir: -1, side: 'away', score: 0 };
@@ -383,7 +400,7 @@ export class Game {
 
   scoreGoal(scoringTeam) {
     scoringTeam.score++;
-    this.showMessage(`GOAL! ${scoringTeam.team.name}`, 2.2, () => this.resetKickoff());
+    this.showMessage(`גול! ${scoringTeam.team.name}`, 2.2, () => this.resetKickoff());
   }
 
   updateClock(dt) {
@@ -395,12 +412,12 @@ export class Game {
         this.home.attackDir *= -1;
         this.away.attackDir *= -1;
         for (const p of [...this.home.squad, ...this.away.squad]) p.attackDir *= -1;
-        this.showMessage('Half Time', 2.5, () => this.resetKickoff());
+        this.showMessage('מחצית', 2.5, () => this.resetKickoff());
       } else {
         this.clockSeconds = this.halfLengthSeconds;
         const homeScore = this.home.score;
         const awayScore = this.away.score;
-        this.showMessage(`Full Time  ${homeScore} - ${awayScore}`, 3, () => {
+        this.showMessage(`סוף המשחק  ${homeScore} - ${awayScore}`, 3, () => {
           this.onFullTime({ homeScore, awayScore });
         });
       }
