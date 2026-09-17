@@ -7,24 +7,40 @@ export class Camera {
     this.viewportHeight = viewportHeight;
     this.x = FIELD.width / 2;
     this.y = FIELD.height / 2;
-    this.zoom = 0.85;
-    this.baseZoom = viewportWidth / (FIELD.width + FIELD.margin * 2);
+
+    // זום ברירת מחדל: פנימה, על האזור המיידי סביב המשחק
+    this.zoomClose = viewportWidth / 480;
+    // זום ליד קו ה-18 של היריב: מתרחק כדי להראות את כל תמונת ההתקפה/הגנה
+    this.zoomWide = (viewportWidth / (FIELD.width + FIELD.margin * 2)) * 1.05;
+    this.zoom = this.zoomClose;
+    // "השליש ההתקפי" - מרחק מהשער שממנו מתחילים להתרחק בהדרגה
+    this.attackThird = FIELD.width / 3;
   }
 
   update(dt, focusX, focusY, players) {
-    // צפיפות שחקנים סביב נקודת המיקוד: הרבה שחקנים קרובים -> זום מעט החוצה
+    // רמת זום בסיסית לפי מרחק הכדור/המיקוד מהשער הקרוב ביותר
+    const distToGoal = Math.min(focusX, FIELD.width - focusX);
+    let targetZoom;
+    if (distToGoal >= this.attackThird) {
+      targetZoom = this.zoomClose;
+    } else {
+      const t = distToGoal / this.attackThird; // 0 בקו השער, 1 בקצה השליש ההתקפי
+      targetZoom = this.zoomWide + (this.zoomClose - this.zoomWide) * t;
+    }
+
+    // צפיפות שחקנים סביב נקודת המיקוד: הרבה שחקנים קרובים -> נדנוד קל נוסף החוצה
     let nearby = 0;
     for (const p of players) {
       const d = Math.hypot(p.x - focusX, p.y - focusY);
       if (d < 140) nearby++;
     }
     const density = Math.min(nearby / 10, 1);
-    const targetZoom = this.baseZoom * (1.28 - density * 0.22);
+    targetZoom *= 1 - density * 0.08;
 
     const followSpeed = 3.2;
     this.x += (focusX - this.x) * Math.min(1, followSpeed * dt);
     this.y += (focusY - this.y) * Math.min(1, followSpeed * dt);
-    this.zoom += (targetZoom - this.zoom) * Math.min(1, 2.5 * dt);
+    this.zoom += (targetZoom - this.zoom) * Math.min(1, 1.8 * dt); // מעבר חלק בין רמות זום, לא קפיצה
 
     const halfW = this.viewportWidth / 2 / this.zoom;
     const halfH = this.viewportHeight / 2 / this.zoom;
