@@ -1,0 +1,12 @@
+[
+  { "name": "Real Madrid", "abbr": "RMA", "primary": "#FFFFFF", "secondary": "#1E3A8A" },
+  { "name": "Barcelona", "abbr": "FCB", "primary": "#004D98", "secondary": "#A50044" },
+  { "name": "Manchester City", "abbr": "MCI", "primary": "#6CABDD", "secondary": "#1C2C5B" },
+  { "name": "Manchester United", "abbr": "MUN", "primary": "#DA291C", "secondary": "#FBE122" },
+  { "name": "Liverpool", "abbr": "LIV", "primary": "#C8102E", "secondary": "#00B2A9" },
+  { "name": "Bayern Munich", "abbr": "BAY", "primary": "#DC052D", "secondary": "#0066B2" },
+  { "name": "PSG", "abbr": "PSG", "primary": "#004170", "secondary": "#DA291C" },
+  { "name": "Juventus", "abbr": "JUV", "primary": "#000000", "secondary": "#FFFFFF" },
+  { "name": "Al Nassr", "abbr": "ALN", "primary": "#FFF200", "secondary": "#0033A0" },
+  { "name": "Inter Miami", "abbr": "MIA", "primary": "#F7B5CD", "secondary": "#000000" }
+]
