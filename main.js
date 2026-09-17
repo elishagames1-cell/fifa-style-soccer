@@ -2,6 +2,7 @@
 import { initAuth, getSession, clearSession } from './auth.js';
 import { initTeamSelect } from './teamSelect.js';
 import { Game } from './game.js';
+import { initTouchControls } from './touchControls.js';
 
 const authScreen = document.getElementById('authScreen');
 const homeScreen = document.getElementById('homeScreen');
@@ -11,6 +12,8 @@ const helpScreen = document.getElementById('helpScreen');
 const gameScreen = document.getElementById('gameScreen');
 
 const allScreens = [authScreen, homeScreen, teamSelectScreen, leaderboardScreen, helpScreen, gameScreen];
+
+initTouchControls(gameScreen);
 
 function showScreen(screen) {
   allScreens.forEach((s) => s.classList.add('hidden'));

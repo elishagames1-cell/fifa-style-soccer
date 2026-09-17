@@ -5,6 +5,7 @@ import { runAI } from './ai.js';
 import { drawHUD, drawMatchMessage } from './ui.js';
 import { FIELD, formationWorldPos } from './field.js';
 import { loadPlayers, buildSquad } from './data.js';
+import { touchState } from './touchControls.js';
 
 const HALF_LENGTH_SECONDS = 4 * 60;
 const PICKUP_RADIUS = 22;
@@ -186,11 +187,21 @@ export class Game {
     if (keys['KeyS'] || keys['ArrowDown']) iy += 1;
     if (keys['KeyA'] || keys['ArrowLeft']) ix -= 1;
     if (keys['KeyD'] || keys['ArrowRight']) ix += 1;
-    const sprint = !!(keys['ShiftLeft'] || keys['ShiftRight']);
+
+    // מיזוג קלט ג'ויסטיק מגע (אנלוגי) עם קלט המקלדת (דיגיטלי)
+    ix += touchState.moveX;
+    iy += touchState.moveY;
+    const inputLen = Math.hypot(ix, iy);
+    if (inputLen > 1) {
+      ix /= inputLen;
+      iy /= inputLen;
+    }
+
+    const sprint = !!(keys['ShiftLeft'] || keys['ShiftRight']) || touchState.sprint;
     this.controlled.update(dt, { moveX: ix, moveY: iy, sprint });
 
     // מסירה: לחיצה קצרה = קרקעית מדויקת, לחיצה ארוכה = גבוהה/רחוקה
-    const passDown = !!keys['KeyJ'];
+    const passDown = !!keys['KeyJ'] || touchState.pass;
     if (passDown && !this.prev.pass) this.passHoldTime = 0;
     if (passDown) this.passHoldTime += dt;
     if (!passDown && this.prev.pass && this.ball.carrier === this.controlled) {
@@ -201,7 +212,7 @@ export class Game {
     this.prev.pass = passDown;
 
     // בעיטה: מד כוח לפי משך לחיצה
-    const shootDown = !!keys['KeyK'];
+    const shootDown = !!keys['KeyK'] || touchState.shoot;
     if (shootDown && this.ball.carrier === this.controlled) {
       this.shootPower = Math.min(1, this.shootPower + dt / 1.1);
     } else if (!shootDown && this.prev.shoot && this.ball.carrier === this.controlled) {
@@ -213,12 +224,12 @@ export class Game {
     this.prev.shoot = shootDown;
 
     // חטיפת כדור
-    const tackleDown = !!keys['KeyE'];
+    const tackleDown = !!keys['KeyE'] || touchState.tackle;
     if (tackleDown && !this.prev.tackle) this.attemptTackle(this.controlled);
     this.prev.tackle = tackleDown;
 
     // החלפת שחקן נשלט ידנית
-    const tabDown = !!keys['Tab'];
+    const tabDown = !!keys['Tab'] || touchState.tab;
     if (tabDown && !this.prev.tab) this.cyclePlayer();
     this.prev.tab = tabDown;
   }

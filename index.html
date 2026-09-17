@@ -115,8 +115,55 @@
     font-size: 28px; color: #4caf50; border: 2px dashed #4caf50; border-radius: 6px; margin-bottom: 6px;
   }
 
-  #gameScreen { background: #000; }
-  canvas { background: #2e7d32; display: block; max-width: 100vw; max-height: 100vh; }
+  #gameScreen { background: #000; position: relative; }
+  #gameCanvas { background: #2e7d32; display: block; max-width: 100vw; max-height: 100vh; object-fit: contain; }
+
+  /* מסך "סובב את המכשיר" - מוצג רק בטלפון במצב לאורך */
+  .rotate-overlay {
+    display: none; position: absolute; inset: 0; z-index: 5;
+    background: #111; color: #eee; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; gap: 10px;
+  }
+  .rotate-overlay .rotate-icon { font-size: 48px; }
+  @media (orientation: portrait) and (max-width: 900px) {
+    #gameCanvas, .touch-controls { display: none !important; }
+    .rotate-overlay { display: flex; }
+  }
+
+  /* שליטת מגע: ג'ויסטיק וירטואלי + כפתורי פעולה, מוצג רק במכשירי מגע */
+  .touch-controls { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  .joystick-base {
+    position: absolute; left: 24px; bottom: 24px; width: 100px; height: 100px;
+    border-radius: 50%; background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.3);
+    pointer-events: auto; touch-action: none;
+  }
+  .joystick-knob {
+    position: absolute; left: 30px; top: 30px; width: 40px; height: 40px;
+    border-radius: 50%; background: rgba(255,255,255,0.55); border: 2px solid rgba(255,255,255,0.8);
+  }
+  .action-buttons {
+    position: absolute; right: 16px; bottom: 16px; width: 190px; height: 150px;
+    pointer-events: none;
+  }
+  .touch-btn {
+    position: absolute; width: 62px; height: 62px; border-radius: 50%;
+    background: rgba(76,175,80,0.35); border: 2px solid rgba(255,255,255,0.6);
+    color: #fff; font-size: 9px; font-weight: bold; letter-spacing: 0.3px;
+    padding: 0; pointer-events: auto; touch-action: none;
+  }
+  .btn-shoot { right: 0; bottom: 0; width: 72px; height: 72px; font-size: 10px; background: rgba(244,67,54,0.4); }
+  .btn-pass { right: 78px; bottom: 16px; }
+  .btn-tackle { right: 4px; bottom: 96px; }
+  .btn-sprint { right: 104px; bottom: 104px; background: rgba(255,193,7,0.35); }
+  .btn-tab { right: 154px; bottom: 40px; width: 52px; height: 52px; font-size: 8px; }
+
+  /* התאמות למסכי טלפון צרים */
+  @media (max-width: 480px) {
+    .auth-card { width: 85vw; padding: 24px 20px; }
+    .home-btn { width: 80vw; }
+    .team-grid { grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); }
+    .help-body { padding: 16px; }
+  }
 </style>
 </head>
 <body>
@@ -232,6 +279,10 @@
 
 <div id="gameScreen" class="screen hidden">
   <canvas id="gameCanvas" width="960" height="600"></canvas>
+  <div class="rotate-overlay">
+    <div class="rotate-icon">🔄</div>
+    <div>סובב את המכשיר לרוחב כדי לשחק</div>
+  </div>
 </div>
 
 <script type="module" src="main.js"></script>
