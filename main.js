@@ -86,6 +86,15 @@ document.getElementById('startPlayingBtn').addEventListener('click', async () =>
 document.getElementById('leaderboardBtn').addEventListener('click', () => showScreen(leaderboardScreen));
 document.getElementById('helpBtn').addEventListener('click', () => showScreen(helpScreen));
 
+function leaveMatch(destination) {
+  currentGame = null;
+  showScreen(destination);
+  if (destination === teamSelectScreen && teamSelectApi) teamSelectApi.reset();
+}
+
+document.getElementById('gameBackBtn').addEventListener('click', () => leaveMatch(teamSelectScreen));
+document.getElementById('gameHomeBtn').addEventListener('click', () => leaveMatch(homeScreen));
+
 async function ensureTeamSelect() {
   if (!teamSelectApi) {
     teamSelectApi = await initTeamSelect({
@@ -108,11 +117,7 @@ async function startMatch(myTeam, opponentTeam) {
   const canvas = document.getElementById('gameCanvas');
 
   const game = new Game(canvas, {
-    onMatchEnd: () => {
-      currentGame = null;
-      showScreen(teamSelectScreen);
-      teamSelectApi.reset();
-    },
+    onMatchEnd: () => leaveMatch(teamSelectScreen),
   });
   await game.init(myTeam, opponentTeam);
   currentGame = game;
