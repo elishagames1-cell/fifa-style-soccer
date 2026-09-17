@@ -57,6 +57,20 @@ function findChaser(squad, ball) {
   return best;
 }
 
+function findGoalkeeperOutlet(squad, gk) {
+  let best = null;
+  let bestDist = Infinity;
+  for (const p of squad) {
+    if (p === gk || p.role === 'GK') continue;
+    const d = dist(p.x, p.y, gk.x, gk.y);
+    if (d < bestDist) {
+      bestDist = d;
+      best = p;
+    }
+  }
+  return best;
+}
+
 function findClosestTo(squad, x, y, exclude) {
   let best = null;
   let bestDist = Infinity;
@@ -136,6 +150,14 @@ export function runAI(dt, { home, away, ball, controlled, actions, tackleRange =
 
       if (player.role === 'GK') {
         target = goalkeeperTarget(player, ball);
+        if (ball.carrier === player && player.actionCooldown <= 0) {
+          const mate = findGoalkeeperOutlet(team.squad, player);
+          if (mate) {
+            const long = dist(player.x, player.y, mate.x, mate.y) > 250;
+            actions.pass(player, mate, long);
+          }
+          player.actionCooldown = 1.5;
+        }
       } else if (ball.carrier === player) {
         const intent = decideCarrierIntent(player, ball, team.squad, opp.squad);
         if (player.actionCooldown <= 0) {

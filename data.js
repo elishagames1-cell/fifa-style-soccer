@@ -29,7 +29,7 @@ export function teamRating(teamPlayers) {
 function genericStatsFor(position, baseRating) {
   const jitter = () => Math.round(baseRating + (Math.random() * 10 - 5));
   const stats = { rating: baseRating, pace: jitter(), shooting: jitter(), passing: jitter(), dribbling: jitter(), defending: jitter(), physical: jitter() };
-  if (position === 'GK') { stats.shooting = 30; stats.defending = 40; }
+  if (position === 'GK') { stats.shooting = 30; stats.defending = 40; stats.dribbling = Math.max(15, Math.round(baseRating * 0.4)); }
   if (position === 'DEF') { stats.defending = Math.min(99, stats.defending + 10); }
   if (position === 'FWD') { stats.shooting = Math.min(99, stats.shooting + 10); }
   return stats;

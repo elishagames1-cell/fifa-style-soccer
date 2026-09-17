@@ -18,6 +18,7 @@ function dist(a, b) {
 const DIFFICULTY_MULTIPLIERS = { easy: 0.8, medium: 1.0, hard: 1.25 };
 
 // מעצים/מחליש את סטטיסטיקות היריב לפי רמת הקושי הנבחרת, בלי לגעת בקבוצה של המשתמש
+// dribbling לא מוגדל: אחרת ברמת קושי גבוהה כמעט אי-אפשר לחטוף כדור מהיריב בכלל
 function applyDifficulty(squadData, difficulty) {
   const mult = DIFFICULTY_MULTIPLIERS[difficulty] ?? 1.0;
   const scale = (v) => Math.max(1, Math.min(99, Math.round(v * mult)));
@@ -26,7 +27,6 @@ function applyDifficulty(squadData, difficulty) {
     pace: scale(p.pace),
     shooting: scale(p.shooting),
     passing: scale(p.passing),
-    dribbling: scale(p.dribbling),
     defending: scale(p.defending),
     physical: scale(p.physical),
   }));
@@ -342,13 +342,17 @@ export class Game {
       return;
     }
     if (this.ball.carrier) return;
-    if (Math.hypot(this.ball.vx, this.ball.vy) > 260) return;
+
+    // כדור מהיר (בעיטה/מסירה חזקה) נחסם רק בהתנגשות פיזית צמודה עם שחקן שממש בדרכו;
+    // כדור איטי/עומד נאסף בנוחות (רדיוס איסוף רגיל) - כך שחקן/שוער שהכדור עובר עליו תמיד עוצר אותו
+    const speed = Math.hypot(this.ball.vx, this.ball.vy);
+    const radius = speed > 260 ? 20 : PICKUP_RADIUS;
 
     let best = null;
     let bestDist = Infinity;
     for (const p of [...this.home.squad, ...this.away.squad]) {
       const d = dist(p, this.ball);
-      if (d < PICKUP_RADIUS && d < bestDist) {
+      if (d < radius && d < bestDist) {
         bestDist = d;
         best = p;
       }
@@ -356,6 +360,8 @@ export class Game {
     if (best) {
       this.ball.carrier = best;
       this.ball.lastTouchSide = best.side;
+      // שוער שתופס כדור מחזיק אותו רגע לפני שהוא מבצע חילוץ, במקום לשחרר מיד
+      if (best.role === 'GK') best.actionCooldown = Math.max(best.actionCooldown, 0.8);
     }
   }
 
