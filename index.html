@@ -248,6 +248,13 @@ function createFieldTexture(){
     ctx.fillStyle = i%2===0 ? '#3fa53f' : '#379437';
     ctx.fillRect(i*stripeW,0,stripeW+1,h);
   }
+  // subtle blade/wear noise so the grass doesn't read as a flat solid fill
+  for(let i=0;i<9000;i++){
+    const x=Math.random()*w, y=Math.random()*h;
+    const shade = Math.random();
+    ctx.fillStyle = shade<0.5 ? 'rgba(20,60,20,0.10)' : 'rgba(180,220,150,0.08)';
+    ctx.fillRect(x,y,1.6,1.6);
+  }
   ctx.strokeStyle='#f2f2f2'; ctx.lineWidth=3; ctx.lineCap='round';
   ctx.strokeRect(6,6,w-12,h-12);
   ctx.beginPath(); ctx.moveTo(w/2,6); ctx.lineTo(w/2,h-6); ctx.stroke();
@@ -312,11 +319,12 @@ function createNetTexture(){
   const cvs=document.createElement('canvas'); cvs.width=s; cvs.height=s;
   const ctx=cvs.getContext('2d');
   ctx.clearRect(0,0,s,s);
-  ctx.strokeStyle='rgba(255,255,255,0.65)'; ctx.lineWidth=1.5;
-  const step=16;
-  for(let i=0;i<=s;i+=step){
-    ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,s); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(s,i); ctx.stroke();
+  // diamond/diagonal weave reads far more like a real soccer net than a square grid
+  ctx.strokeStyle='rgba(255,255,255,0.7)'; ctx.lineWidth=1.4;
+  const step=14;
+  for(let i=-s;i<=s*2;i+=step){
+    ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i+s,s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(i+s,0); ctx.lineTo(i,s); ctx.stroke();
   }
   const tex = new THREE.CanvasTexture(cvs);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -379,9 +387,9 @@ function initScene(){
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  const hemi = new THREE.HemisphereLight(0xbfe3ff, 0x2d5a27, 0.65);
+  const hemi = new THREE.HemisphereLight(0xbfe3ff, 0x2d5a27, 0.55);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xfff4dd, 1.05);
+  const sun = new THREE.DirectionalLight(0xfff4dd, 1.35);
   sun.position.set(60,90,40);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048,2048);
