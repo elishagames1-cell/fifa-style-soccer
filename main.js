@@ -14,6 +14,37 @@ const gameScreen = document.getElementById('gameScreen');
 const allScreens = [authScreen, homeScreen, teamSelectScreen, leaderboardScreen, helpScreen, gameScreen];
 
 initTouchControls(gameScreen);
+initFullscreenButton();
+
+function initFullscreenButton() {
+  const btn = document.getElementById('fullscreenBtn');
+  const supported = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+  if (!supported) {
+    btn.style.display = 'none';
+    return;
+  }
+
+  function isFullscreen() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  btn.addEventListener('click', () => {
+    if (!isFullscreen()) {
+      const req = document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen;
+      req.call(document.documentElement).catch((err) => console.warn('Fullscreen request failed:', err));
+    } else {
+      const exit = document.exitFullscreen || document.webkitExitFullscreen;
+      exit.call(document);
+    }
+  });
+
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach((evt) => {
+    document.addEventListener(evt, () => {
+      btn.textContent = isFullscreen() ? '⤢' : '⛶';
+      btn.title = isFullscreen() ? 'Exit Fullscreen' : 'Fullscreen';
+    });
+  });
+}
 
 function showScreen(screen) {
   allScreens.forEach((s) => s.classList.add('hidden'));
