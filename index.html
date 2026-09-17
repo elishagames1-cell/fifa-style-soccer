@@ -367,7 +367,7 @@ function initScene(){
   scene.background = new THREE.Color(0xbfe0f7);
   scene.fog = new THREE.Fog(0xcfe9fb, 110, 280);
 
-  camera = new THREE.PerspectiveCamera(62, window.innerWidth/window.innerHeight, 0.1, 500);
+  camera = new THREE.PerspectiveCamera(52, window.innerWidth/window.innerHeight, 0.1, 500);
   camera.position.set(0,20,30);
 
   renderer = new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true});
@@ -468,9 +468,9 @@ function buildGoal(xSide){
   sideNetL.position.set(xSide - sign*GOAL_DEPTH/2, GOAL_H/2, -GOAL_HALF_W);
   const sideNetR = sideNetL.clone(); sideNetR.position.z = GOAL_HALF_W;
   group.add(sideNetL, sideNetR);
-  const topNet = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_HALF_W*2, GOAL_DEPTH), netMat);
+  const topNet = new THREE.Mesh(new THREE.PlaneGeometry(GOAL_DEPTH, GOAL_HALF_W*2), netMat);
   topNet.position.set(xSide - sign*GOAL_DEPTH/2, GOAL_H, 0);
-  topNet.rotation.x = Math.PI/2;
+  topNet.rotation.x = -Math.PI/2;
   group.add(topNet);
   scene.add(group);
 }
@@ -857,10 +857,12 @@ function doSwitch(){
     controlledIndex = best;
     players[best].isUser = true;
     if(players[best].mesh.userData.parts.ring) players[best].mesh.userData.parts.ring.visible=true;
+    players[best].heading = Math.atan2(players[best].facing.x, players[best].facing.z);
+    snapCamera();
   }
 }
 
-function toggleCamera(){ cameraMode = cameraMode==='follow' ? 'tactical' : 'follow'; }
+function toggleCamera(){ cameraMode = cameraMode==='follow' ? 'tactical' : 'follow'; snapCamera(); }
 
 /* ============================== AI ============================== */
 function updateAI(dt){
@@ -942,6 +944,21 @@ function updateGK(p, dt){
   steerTo(p, new THREE.Vector2(targetX, targetZ), AI_BASE_SPEED*0.85, dt, false);
 }
 
+const TURN_RATE = 9; // rad/s — characters steer smoothly into a new heading instead of snap-rotating
+function shortestAngleDiff(a,b){
+  let d = b-a;
+  while(d>Math.PI) d-=Math.PI*2;
+  while(d<-Math.PI) d+=Math.PI*2;
+  return d;
+}
+function turnHeading(p, targetHeading, dt, rate){
+  if(p.heading===undefined) p.heading = Math.atan2(p.facing.x, p.facing.z);
+  const diff = shortestAngleDiff(p.heading, targetHeading);
+  const maxDelta = (rate||TURN_RATE)*dt;
+  p.heading += THREE.MathUtils.clamp(diff, -maxDelta, maxDelta);
+  return p.heading;
+}
+
 function steerTo(p, targetXZ, maxSpeed, dt, isChase){
   const dx = targetXZ.x - p.position.x;
   const dz = targetXZ.y - p.position.z;
@@ -949,10 +966,11 @@ function steerTo(p, targetXZ, maxSpeed, dt, isChase){
   let speed = maxSpeed;
   if(!isChase) speed *= THREE.MathUtils.clamp(dist/2, 0.15, 1);
   if(dist>0.05){
-    const nx=dx/dist, nz=dz/dist;
-    p.position.x += nx*speed*dt;
-    p.position.z += nz*speed*dt;
-    p.facing.set(nx,0,nz);
+    const heading = turnHeading(p, Math.atan2(dx,dz), dt);
+    const mx = Math.sin(heading), mz = Math.cos(heading);
+    p.position.x += mx*speed*dt;
+    p.position.z += mz*speed*dt;
+    p.facing.set(mx,0,mz);
     p.speedNow = speed;
   } else {
     p.speedNow *= 0.8;
@@ -966,6 +984,21 @@ function clampToField(p){
 }
 
 /* ============================== USER CONTROL ============================== */
+function getCameraGroundBasis(){
+  // camera's current forward/right projected onto the pitch, so "W/D" always mean
+  // "away from camera / screen-right" no matter which way the player happens to face
+  const look = camera.userData.look;
+  let fx, fz;
+  if(look){
+    fx = look.x - camera.position.x;
+    fz = look.z - camera.position.z;
+  } else { fx = 0; fz = -1; }
+  let flen = Math.hypot(fx,fz);
+  if(flen<0.001){ fx=0; fz=-1; flen=1; }
+  fx/=flen; fz/=flen;
+  return {fx, fz, rx:-fz, rz:fx};
+}
+
 function updateUserControl(dt){
   const p = controlledPlayer();
   let ix=0, iz=0, sprint=false;
@@ -975,10 +1008,18 @@ function updateUserControl(dt){
   const len = Math.hypot(ix,iz);
   if(len>0.08){
     ix/=Math.max(len,1); iz/=Math.max(len,1);
+    const cam = getCameraGroundBasis();
+    const fwdAmt = -iz, rightAmt = ix; // W (iz=-1) = away from camera, D (ix=1) = camera-right
+    let mx = cam.fx*fwdAmt + cam.rx*rightAmt;
+    let mz = cam.fz*fwdAmt + cam.rz*rightAmt;
+    const mlen = Math.hypot(mx,mz) || 1;
+    mx/=mlen; mz/=mlen;
+    const heading = turnHeading(p, Math.atan2(mx,mz), dt);
+    const hx = Math.sin(heading), hz = Math.cos(heading);
     const speed = BASE_SPEED * (sprint?SPRINT_MULT:1);
-    p.position.x += ix*speed*dt;
-    p.position.z += iz*speed*dt;
-    p.facing.set(ix,0,iz).normalize();
+    p.position.x += hx*speed*dt;
+    p.position.z += hz*speed*dt;
+    p.facing.set(hx,0,hz);
     p.speedNow = speed;
   } else {
     p.speedNow *= 0.8;
@@ -1089,11 +1130,25 @@ function animatePlayers(dt){
 
 /* ============================== CAMERA ============================== */
 const camTmp = new THREE.Vector3();
+const FOLLOW_DIST = 9, FOLLOW_HEIGHT = 5.2;
+function snapCamera(){
+  // place the camera at its target instantly — avoids a slow slide-in that can look
+  // like the player is drifting on its own right after kickoff or a player switch
+  const p = controlledPlayer();
+  if(cameraMode==='follow'){
+    camera.position.set(p.position.x - p.facing.x*FOLLOW_DIST, FOLLOW_HEIGHT, p.position.z - p.facing.z*FOLLOW_DIST);
+    camera.userData.look = new THREE.Vector3(p.position.x + p.facing.x*3, 1.2, p.position.z + p.facing.z*3);
+  } else {
+    camera.position.set(ball.position.x*0.6, 46, ball.position.z*0.6 + 26);
+    camera.userData.look = new THREE.Vector3(ball.position.x*0.7, 0, ball.position.z*0.7);
+  }
+  camera.lookAt(camera.userData.look);
+}
+
 function updateCamera(dt){
   const p = controlledPlayer();
   if(cameraMode==='follow'){
-    const dist=7.5, height=4.2;
-    camTmp.set(p.position.x - p.facing.x*dist, height, p.position.z - p.facing.z*dist);
+    camTmp.set(p.position.x - p.facing.x*FOLLOW_DIST, FOLLOW_HEIGHT, p.position.z - p.facing.z*FOLLOW_DIST);
     camera.position.lerp(camTmp, Math.min(1,dt*4));
     const look = new THREE.Vector3(p.position.x + p.facing.x*3, 1.2, p.position.z + p.facing.z*3);
     const curLook = camera.userData.look || look.clone();
@@ -1150,6 +1205,7 @@ function runKickoffCountdown(){
     if(idx>=seq.length){
       el.classList.add('hidden');
       cameraMode = prevCam;
+      snapCamera();
       gameState = 'playing';
       return;
     }
